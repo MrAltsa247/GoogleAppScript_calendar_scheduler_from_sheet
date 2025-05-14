@@ -1,0 +1,31 @@
+function createCalendarEventsFromSheet() {
+  const sheetName = "CalendarSchedule";
+  const calendarId = "YOUR_CALENDAR_ID"; // leave blank "" for default calendar
+  const calendar = calendarId ? CalendarApp.getCalendarById(calendarId) : CalendarApp.getDefaultCalendar();
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    const [title, description, date, time, duration, status] = data[i];
+    if (status === "Scheduled") continue;
+
+    try {
+      const startDateTime = new Date(`${date}T${time}:00`);
+      const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
+
+      const event = calendar.createEvent(title, startDateTime, endDateTime, {
+        description: description
+      });
+
+      event.addPopupReminder(10); // Remind 10 minutes before event
+
+      // Mark as scheduled
+      sheet.getRange(i + 1, 6).setValue("Scheduled");
+      Logger.log(`Scheduled: ${title} on ${startDateTime}`);
+
+    } catch (e) {
+      Logger.log(`Failed to schedule: ${title} - ${e.message}`);
+    }
+  }
+}
